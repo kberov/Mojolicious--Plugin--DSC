@@ -21,7 +21,7 @@ my $DRIVER_ATTRIBUTES = {
 my $MEx = 'Mojo::Exception';
 
 sub register {
-  my ($c, $app, $config) = @_;
+  my ($self, $app, $config) = @_;
 
   # This stuff is executed, when the plugin is loaded
   # Config
@@ -34,7 +34,8 @@ sub register {
   #prepared Data Source Name?
   if (!$config->{dsn}) {
     $config->{driver}
-      || $MEx->throw('Please choose and set a database driver like "mysql","SQLite","Pg"!..');
+      || $MEx->throw(
+      'Please choose and set a database driver like "mysql","SQLite","Pg"!..');
     $config->{database} || $MEx->throw('Please set "database"!');
     $config->{host} ||= 'localhost';
     $config->{dsn} = 'dbi:'
@@ -44,17 +45,14 @@ sub register {
       . ';host='
       . $config->{host};
   }
-  else {
 
-    #check if it is ok
-    my ($scheme, $attr_string, $attr_hash, $dsn);
-    ($scheme, $config->{driver}, $attr_string, $attr_hash, $dsn) =
-      DBI->parse_dsn($config->{dsn})
-      or $MEx->throw("Can't parse DBI DSN! dsn=>'$config->{dsn}'");
-  }
+  #check if it is ok
+  DBI->parse_dsn($config->{dsn})
+    || $MEx->throw("Can't parse DBI DSN! dsn=>'$config->{dsn}'");
+
 
   $MEx->throw('"load_classes" configuration directive '
-      . 'must contain a list of classes to load.')
+      . 'must be an ARRAY reference containing a list of classes to load.')
     unless (ref($config->{load_classes}) eq 'ARRAY');
   if (@{$config->{load_classes}} && !$config->{namespace}) {
     $MEx->throw('Please define namespace for your model classes!');
@@ -74,10 +72,10 @@ sub register {
   if (!ref($config->{onconnect_do})) {
     $config->{onconnect_do} = [$config->{onconnect_do}];
   }
-  for my $sql ($config->{onconnect_do}) {
+  for my $sql (@{$config->{onconnect_do}}) {
     $dbix->dbh->do($sql) if $sql;
   }
-  DBIx::Simple::Class->dbix($dbix);#do not forget
+  DBIx::Simple::Class->dbix($dbix);    #do not forget
   $config->{dbix_helper} ||= 'dbix';
   $app->helper($config->{dbix_helper}, $dbix);    #add helper dbix
 
@@ -103,15 +101,17 @@ sub register {
       $MEx->throw($e) if $e;
     }
   }
+  return;
 }    #end register
 
 
 1;
+
 __END__
 
 =head1 NAME
 
-Mojolicious::Plugin::DSC - Mojolicious Plugin
+Mojolicious::Plugin::DSC - use DBIx::Simple::Class in your application.
 
 =head1 SYNOPSIS
 
@@ -123,7 +123,9 @@ Mojolicious::Plugin::DSC - Mojolicious Plugin
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Plugin::DSC> is a L<Mojolicious> plugin.
+L<Mojolicious::Plugin::DSC> is a L<Mojolicious> plugin that helps you
+use DBIx::Simple::Class in your application.
+
 
 =head1 METHODS
 
