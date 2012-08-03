@@ -19,7 +19,7 @@ my $DRIVER_ATTRIBUTES = {
 };
 
 my $MEx = 'Mojo::Exception';
-
+has config =>sub{{}};
 sub register {
   my ($self, $app, $config) = @_;
 
@@ -101,6 +101,7 @@ sub register {
       $MEx->throw($e) if $e;
     }
   }
+  $self->config($config);
   return;
 }    #end register
 
@@ -109,23 +110,59 @@ sub register {
 
 __END__
 
+=encoding utf8
+
 =head1 NAME
 
 Mojolicious::Plugin::DSC - use DBIx::Simple::Class in your application.
 
 =head1 SYNOPSIS
 
+  #load
   # Mojolicious
   $self->plugin('DSC', $config);
 
   # Mojolicious::Lite
   plugin 'DSC', $config;
 
+  #use
+  my $user = $app->dbix->query('SELECT * FROM users WHERE user=?','ivan');
+  
+  #...and if you added My::User to 'load_classes' (see below)
+  my $user = My::User->query('SELECT * FROM users WHERE user=?','ivan');
+  
 =head1 DESCRIPTION
 
-L<Mojolicious::Plugin::DSC> is a L<Mojolicious> plugin that helps you
-use DBIx::Simple::Class in your application.
+Mojolicious::Plugin::DSC is a L<Mojolicious> plugin that helps you
+use L<DBIx::Simple::Class> in your application.
+It also adds a helper (C<$app-E<gt>dbix> by default) which is a DBIx::Simple instance.
 
+=head1 CONFIGURATION
+
+You can add all classes from your schema to the configuration 
+and they will be loaded when the plugin is registered.
+The configuration is pretty flexible:
+
+  # in Mojolicious startup()
+  $self->plugin('DSC', {
+    driver => 'SQLite',
+    database =>':memory:',
+  });
+  #or
+  $self->plugin('DSC', {
+    driver => 'mysql',
+    database => 'mydbname',
+    host => '127.0.0.1',
+    user => 'myself',
+    password => 'secret',
+    onconnect_do => ['SET NAMES UTF8','SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO"'],
+    dbh_attributes => {RaiseError=>0, AutoCommit=>0},
+    namespace => 'My',
+    #will load My::User, My::Content, My::Pages
+    load_classes =>['User', 'Content', 'Pages'],
+    #now you can use $app->DBIX instead of $app->dbix
+    dbix_helper => 'DBIX' 
+  });
 
 =head1 METHODS
 
@@ -138,8 +175,24 @@ L<Mojolicious::Plugin> and implements the following new ones.
 
 Register plugin in L<Mojolicious> application.
 
+=head1 config
+
+This plugin own configuration. Returns a HASHref.
+
+  #debug
+  $app->log->debug($app->dumper($plugin->config));
+
 =head1 SEE ALSO
 
-L<Mojolicious>, L<Mojolicious::Guides>, L<http://mojolicio.us>.
+L<DBIx::Simple::Class>, L<Mojolicious>, L<Mojolicious::Guides>, L<http://mojolicio.us>.
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2012 Красимир Беров (Krasimir Berov).
+
+This program is free software, you can redistribute it and/or modify it under
+the terms of the Artistic License version 2.0.
+
+See http://dev.perl.org/licenses/ for more information.
 
 =cut
