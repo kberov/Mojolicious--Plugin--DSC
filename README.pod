@@ -1,0 +1,16 @@
+=head1 NAME
+
+Mojolicious::Plugin::DSC - Mojolicious Plugin
+
+=head1 SYNOPSIS
+
+  # Mojolicious
+  $self->plugin('DSC', $config);
+
+  # Mojolicious::Lite
+  plugin 'DSC', $config;
+
+=head1 DESCRIPTION
+
+L<Mojolicious::Plugin::DSC> is a L<Mojolicious> plugin.
+
