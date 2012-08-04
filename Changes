@@ -1,4 +1,9 @@
 Revision history for Mojolicious::Plugin::DSC
 
+0.05  2012-08-04 14:50 EEST
+      - Added missing licence in Makefile.PL.
+      - Added _load_classes() to separate logical chuncks of code..
+      - Added missing Changelog.
+
 0.04  2012-08-04 10:26 EEST
-      - Uploaded first usable version on CPAN
+      - Uploaded first usable version on CPAN.
