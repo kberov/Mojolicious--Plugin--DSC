@@ -6,7 +6,7 @@ BEGIN {
   $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';
 }
 
-use Test::More tests => 9;
+use Test::More tests => 6;
 
 package main;
 use Mojolicious::Lite;
@@ -23,13 +23,17 @@ $config->{driver} = 'SQLite';
 is((eval { plugin 'DSC', $config }, $@), 'Please set "database"!', 'no database');
 $config->{database} = ':memory:';
 is_deeply(
-  $config,
-  { 'database'       => ':memory:',
-    'DEBUG'          => 1,
-    'load_classes'   => [],
-    'namespace'      => '',
-    'dbh_attributes' => {},
-    'driver'         => 'SQLite'
+  plugin('DSC', $config)->config,
+  { database       => ':memory:',
+    DEBUG        => 1,
+    load_classes   => [],
+    namespace      => '',
+    dbh_attributes => {},
+    driver         => 'SQLite',
+    onconnect_do =>[],
+    dbix_helper =>'dbix',
+    host =>'localhost',
+    dsn => 'dbi:SQLite:database=:memory:;host=localhost'
   },
   'default minimal config'
 );
@@ -43,13 +47,3 @@ like(
   qr/must be an ARRAY reference /,
   'load_classes'
 );
-
-#warn Dumper($config);
-
-get '/' => sub {
-  my $self = shift;
-  $self->render_text('Hello Mojo!');
-};
-
-my $t = Test::Mojo->new;
-$t->get_ok('/')->status_is(200)->content_is('Hello Mojo!');

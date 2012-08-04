@@ -28,7 +28,7 @@ sub register {
   $config                 ||= {};
   $config->{load_classes} ||= [];
   $config->{namespace}    ||= '';
-  $config->{DEBUG} ||= ($app->mode =~ /^dev/ ? 1 : 0);
+  $config->{DEBUG} //= ($app->mode =~ /^dev/ ? 1 : 0);
   $config->{dbh_attributes} ||= {};
 
   #prepared Data Source Name?
@@ -102,7 +102,7 @@ sub register {
     }
   }
   $self->config($config);
-  return;
+  return $self;
 }    #end register
 
 
