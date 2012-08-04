@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use DBIx::Simple::Class;
 
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 #some known good defaults
 my %COMMON_ATTRIBUTES = (
@@ -19,7 +19,8 @@ my $DRIVER_ATTRIBUTES = {
 };
 
 my $MEx = 'Mojo::Exception';
-has config =>sub{{}};
+has config => sub { {} };
+
 sub register {
   my ($self, $app, $config) = @_;
 
@@ -73,11 +74,12 @@ sub register {
     $config->{onconnect_do} = [$config->{onconnect_do}];
   }
   for my $sql (@{$config->{onconnect_do}}) {
-    $dbix->dbh->do($sql) if $sql;
+    $dbix->dbh->do($sql);
   }
-  DBIx::Simple::Class->dbix($dbix);    #do not forget
   $config->{dbix_helper} ||= 'dbix';
-  $app->helper($config->{dbix_helper}, $dbix);    #add helper dbix
+  $app->attr($config->{dbix_helper}, sub {$dbix});
+  $app->helper($config->{dbix_helper}, $app->dbix);    #add helper dbix
+  DBIx::Simple::Class->dbix($app->dbix);               #do not forget
 
 
   if ($config->{namespace} && @{$config->{load_classes}}) {
