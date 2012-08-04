@@ -8,7 +8,7 @@ BEGIN {
   use lib qw(t/lib);
 }
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 package main;
 
