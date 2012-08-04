@@ -8,5 +8,6 @@ t/advanced.t
 t/basic.t
 t/lib/My.pm
 t/lib/My/Groups.pm
+t/lib/My/User.pm
 t/pod-coverage.t
 t/pod.t
