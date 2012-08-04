@@ -4,9 +4,10 @@ use Mojo::Base -strict;
 BEGIN {
   $ENV{MOJO_NO_IPV6} = 1;
   $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';
+  use lib qw(t/lib);
 }
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 package main;
 use Mojolicious::Lite;
@@ -25,15 +26,15 @@ $config->{database} = ':memory:';
 is_deeply(
   plugin('DSC', $config)->config,
   { database       => ':memory:',
-    DEBUG        => 1,
+    DEBUG          => 1,
     load_classes   => [],
     namespace      => '',
     dbh_attributes => {},
     driver         => 'SQLite',
-    onconnect_do =>[],
-    dbix_helper =>'dbix',
-    host =>'localhost',
-    dsn => 'dbi:SQLite:database=:memory:;host=localhost'
+    onconnect_do   => [],
+    dbix_helper    => 'dbix',
+    host           => 'localhost',
+    dsn            => 'dbi:SQLite:database=:memory:;host=localhost'
   },
   'default minimal config'
 );
@@ -47,3 +48,6 @@ like(
   qr/must be an ARRAY reference /,
   'load_classes'
 );
+$config->{load_classes} = ['My::User'];
+
+like((eval { plugin 'DSC', $config }, $@), qr/Please define namespace/, 'namespace');

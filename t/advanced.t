@@ -1,4 +1,5 @@
 use Mojo::Base -strict;
+use utf8;
 
 # Disable IPv6 and libev
 BEGIN {
@@ -29,6 +30,7 @@ my $config = {
 
 isa_ok(plugin('DSC', $config), 'Mojolicious::Plugin::DSC');
 
+
 my $my_groups_table = <<"T";
 CREATE TABLE my_groups(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,16 +39,29 @@ CREATE TABLE my_groups(
   )
 T
 
+
+$config->{load_classes} = ['My::User', 'Groups'];
+
+isa_ok(plugin('DSC', $config), 'Mojolicious::Plugin::DSC');
 ok(app->dbix->query($my_groups_table), 'app->dbix works');
 
 ok(app->dbix->query('INSERT INTO my_groups ("group") VALUES(?)', 'pojo'),
   'app->dbix->query works');
+my $group = My::Groups->find(1);
+my $user  = My::User->new(
+  group_id       => $group->id,
+  login_name     => 'петър',
+  login_password => 'secretpass12'
+);
+$user->save;
 
 get '/' => sub {
   my $self = shift;
-  $self->render_text('Hello ' . My::Groups->find(1)->group . '!');
+  $self->render_text(
+    'Hello ' . $user->login_name . ' from group ' . $group->group . '!');
 };
 
 my $t = Test::Mojo->new;
-$t->get_ok('/')->status_is(200)->content_is('Hello pojo!');
+$t->get_ok('/')->status_is(200)
+  ->content_is('Hello ' . $user->login_name . ' from group ' . $group->group . '!');
 

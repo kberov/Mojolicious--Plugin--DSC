@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use DBIx::Simple::Class;
 
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 #some known good defaults
 my %COMMON_ATTRIBUTES = (
@@ -107,12 +107,6 @@ sub _load_classes {
   elsif ($config->{namespace} && !@{$config->{load_classes}}) {
     my @classes = Mojo::Loader->search($config->{namespace});
     foreach my $class (@classes) {
-      my $e = Mojo::Loader->load($class);
-      $MEx->throw($e) if $e;
-    }
-  }
-  elsif (!$config->{namespace} && @{$config->{load_classes}}) {
-    foreach my $class (@{$config->{load_classes}}) {
       my $e = Mojo::Loader->load($class);
       $MEx->throw($e) if $e;
     }
