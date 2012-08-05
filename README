@@ -1,10 +1,7 @@
-=encoding utf8
-
-=head1 NAME
 
 Mojolicious::Plugin::DSC - use DBIx::Simple::Class in your application.
 
-=head1 SYNOPSIS
+SYNOPSIS
 
   #load
   # Mojolicious
@@ -14,51 +11,55 @@ Mojolicious::Plugin::DSC - use DBIx::Simple::Class in your application.
   plugin 'DSC', $config;
 
   #use
-  my $user = $app->dbix->query('SELECT * FROM users WHERE user=?','ivan');
+  my $user = $app->dbix->query('
+    SELECT * FROM users WHERE user=?','ivan');
   
   #...and if you added My::User to 'load_classes' (see below)
-  my $user = My::User->query('SELECT * FROM users WHERE user=?','ivan');
+  my $user = My::User->query(
+    'SELECT * FROM users WHERE user=?','ivan');
   
-=head1 DESCRIPTION
+DESCRIPTION
 
 Mojolicious::Plugin::DSC is a L<Mojolicious> plugin that helps you
 use L<DBIx::Simple::Class> in your application.
 It also adds a helper (C<$app-E<gt>dbix> by default) which is a DBIx::Simple instance.
 
-=head1 CONFIGURATION
+CONFIGURATION
 
 You can add all classes from your schema to the configuration 
-and they will be loaded when the plugin is registered.
+and they will be loaded so you do not have to C<use My::Table>.
 The configuration is pretty flexible:
 
   # in Mojolicious startup()
   $self->plugin('DSC', {
-    driver => 'SQLite',
-    database =>':memory:',
+    dsn => 'dbi:SQLite:database=:memory:;host=localhost'
   });
   #or
   $self->plugin('DSC', {
-    driver => 'mysql',
+    driver => 'mysqlPP',
     database => 'mydbname',
     host => '127.0.0.1',
     user => 'myself',
     password => 'secret',
-    onconnect_do => ['SET NAMES UTF8','SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO"'],
-    dbh_attributes => {RaiseError=>0, AutoCommit=>0},
+    onconnect_do => [
+      'SET NAMES UTF8',
+      'SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO"'
+    ],
+    dbh_attributes => {AutoCommit=>0},
     namespace => 'My',
+    
     #will load My::User, My::Content, My::Pages
-    load_classes =>['User', 'Content', 'Pages'],
+    load_classes =>['User', 'Content', 'My::Pages'],
+    
     #now you can use $app->DBIX instead of $app->dbix
     dbix_helper => 'DBIX' 
   });
 
-=head1 LICENSE AND COPYRIGHT
+LICENSE AND COPYRIGHT
 
 Copyright 2012 Красимир Беров (Krasimir Berov).
 
-This program is free software, you can redistribute it and/or modify it under
-the terms of the Artistic License version 2.0.
+This program is free software, you can redistribute it and/or modify
+it under the terms of the Artistic License version 2.0.
 
 See http://dev.perl.org/licenses/ for more information.
-
-=cut

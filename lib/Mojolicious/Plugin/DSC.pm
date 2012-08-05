@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use DBIx::Simple::Class;
 
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 #some known good defaults
 my %COMMON_ATTRIBUTES = (
@@ -146,26 +146,30 @@ It also adds a helper (C<$app-E<gt>dbix> by default) which is a DBIx::Simple ins
 =head1 CONFIGURATION
 
 You can add all classes from your schema to the configuration 
-and they will be loaded when the plugin is registered.
+and they will be loaded so you do not have to C<use My::Table>.
 The configuration is pretty flexible:
 
   # in Mojolicious startup()
   $self->plugin('DSC', {
-    driver => 'SQLite',
-    database =>':memory:',
+    dsn => 'dbi:SQLite:database=:memory:;host=localhost'
   });
   #or
   $self->plugin('DSC', {
-    driver => 'mysql',
+    driver => 'mysqlPP',
     database => 'mydbname',
     host => '127.0.0.1',
     user => 'myself',
     password => 'secret',
-    onconnect_do => ['SET NAMES UTF8','SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO"'],
-    dbh_attributes => {RaiseError=>0, AutoCommit=>0},
+    onconnect_do => [
+      'SET NAMES UTF8',
+      'SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO"'
+    ],
+    dbh_attributes => {AutoCommit=>0},
     namespace => 'My',
+    
     #will load My::User, My::Content, My::Pages
-    load_classes =>['User', 'Content', 'Pages'],
+    load_classes =>['User', 'Content', 'My::Pages'],
+    
     #now you can use $app->DBIX instead of $app->dbix
     dbix_helper => 'DBIX' 
   });
@@ -196,8 +200,8 @@ L<DBIx::Simple::Class>, L<Mojolicious>, L<Mojolicious::Guides>, L<http://mojolic
 
 Copyright 2012 Красимир Беров (Krasimir Berov).
 
-This program is free software, you can redistribute it and/or modify it under
-the terms of the Artistic License version 2.0.
+This program is free software, you can redistribute it and/or
+modify it under the terms of the Artistic License version 2.0.
 
 See http://dev.perl.org/licenses/ for more information.
 

@@ -1,5 +1,9 @@
 Revision history for Mojolicious::Plugin::DSC
 
+0.06  2012-08-05 23:49 EEST
+      - README is a text file now
+      - enhanced documentation
+
 0.05  2012-08-04 14:50 EEST
       - Added tests and example classes.
       - Added missing licence in Makefile.PL.
