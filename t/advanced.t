@@ -8,13 +8,14 @@ BEGIN {
   use lib qw(t/lib);
 }
 
-use Test::More tests => 7;
+use Test::More tests => 10;
 
 package main;
 
 use Mojolicious::Lite;
 use Test::Mojo;
 use Data::Dumper;
+plugin('Charset', {charset => 'UTF-8'});
 my $config = {
   database       => ':memory:',
   DEBUG          => 0,
@@ -31,13 +32,13 @@ my $config = {
 isa_ok(plugin('DSC', $config), 'Mojolicious::Plugin::DSC');
 
 
-my $my_groups_table = <<"T";
+my $my_groups_table = <<"TAB";
 CREATE TABLE my_groups(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   "group" VARCHAR(12),
   "is' enabled" INT DEFAULT 0
   )
-T
+TAB
 
 
 $config->{load_classes} = ['My::User', 'Groups'];
@@ -61,7 +62,19 @@ get '/' => sub {
     'Hello ' . $user->login_name . ' from group ' . $group->group . '!');
 };
 
-my $t = Test::Mojo->new;
-$t->get_ok('/')->status_is(200)
-  ->content_is('Hello ' . $user->login_name . ' from group ' . $group->group . '!');
+post '/edit/user' => sub {
+  my $c    = shift;
+  my $user = My::User->find($c->param('id'));
+  $user->login_password($c->param('login_password'));
+  $user->save;
+  $c->render_text(
+    'New password for user ' . $user->login_name . ' is ' . $user->login_password);
+};
 
+my $t = Test::Mojo->new;
+$t->get_ok('/')->status_is(200);
+$t->content_is('Hello ' . $user->login_name . ' from group ' . $group->group . '!');
+
+$t->post_form_ok('/edit/user', {id => 1, login_password => 'alabala123'})
+  ->status_is(200);
+$t->content_is('New password for user петър is alabala123');
