@@ -3,7 +3,7 @@ Changes
 lib/Mojolicious/Plugin/DSC.pm
 Makefile.PL
 MANIFEST			This list of files
-README.pod
+README
 t/advanced.t
 t/basic.t
 t/lib/My.pm
