@@ -1,24 +1,19 @@
 package Mojolicious::Plugin::DSC;
 use Mojo::Base 'Mojolicious::Plugin';
 use DBIx::Simple::Class;
+use Mojo::Util qw(camelize);
+use Carp;
 
 
-our $VERSION = '0.06';
+our $VERSION = '0.60';
 
 #some known good defaults
-my %COMMON_ATTRIBUTES = (
+my $COMMON_ATTRIBUTES = {
   RaiseError  => 1,
-  HandleError => sub { Carp::croak(shift) },
   AutoCommit  => 1,
-);
-
-my $DRIVER_ATTRIBUTES = {
-  'mysql'  => {mysql_enable_utf8 => 1, mysql_bind_type_guessing => 1},
-  'SQLite' => {sqlite_unicode    => 1},
-  'Pg'     => {pg_enable_utf8    => 1}
 };
 
-my $MEx = 'Mojo::Exception';
+
 has config => sub { {} };
 
 sub register {
@@ -26,46 +21,53 @@ sub register {
 
   # This stuff is executed, when the plugin is loaded
   # Config
-  $config                 ||= {};
+  $config ||= {};
   $config->{load_classes} ||= [];
-  $config->{namespace}    ||= '';
   $config->{DEBUG} //= ($app->mode =~ /^dev/ ? 1 : 0);
   $config->{dbh_attributes} ||= {};
 
   #prepared Data Source Name?
   if (!$config->{dsn}) {
     $config->{driver}
-      || $MEx->throw(
-      'Please choose and set a database driver like "mysql","SQLite","Pg"!..');
-    $config->{database} || $MEx->throw('Please set "database"!');
+      || croak('Please choose and set a database driver like "mysql","SQLite","Pg"!..');
+    $config->{database} || croak('Please set "database"!');
     $config->{host} ||= 'localhost';
     $config->{dsn} = 'dbi:'
       . $config->{driver}
       . ':database='
       . $config->{database}
       . ';host='
-      . $config->{host};
+      . $config->{host}
+      . ($config->{port} ? ';port=' . $config->{port} : '');
+    $config->{database} =~ m/(\w+)/x and do {
+      $config->{namespace} ||= camelize($1);
+    };
+    $config->{namespace} ||= camelize($config->{database});
+  }
+  else {
+    my ($scheme, $driver, $attr_string, $attr_hash, $driver_dsn) =
+      DBI->parse_dsn($config->{dsn})
+      || croak("Can't parse DBI DSN! dsn=>'$config->{dsn}'");
+    $config->{driver} = $driver;
+    $scheme =~ m/(database|dbname)=\W?(\w+)/x and do {
+      $config->{namespace} ||= camelize($2);
+    };
+    $config->{dbh_attributes} =
+      {%{$config->{dbh_attributes}}, ($attr_hash ? %$attr_hash : ())};
   }
 
-  #check if it is ok
-  DBI->parse_dsn($config->{dsn})
-    || $MEx->throw("Can't parse DBI DSN! dsn=>'$config->{dsn}'");
-
-
-  $MEx->throw('"load_classes" configuration directive '
+  croak('"load_classes" configuration directive '
       . 'must be an ARRAY reference containing a list of classes to load.')
     unless (ref($config->{load_classes}) eq 'ARRAY');
-  if (@{$config->{load_classes}} && !$config->{namespace}) {
-    $MEx->throw('Please define namespace for your model classes!');
-  }
+
   DBIx::Simple::Class->DEBUG($config->{DEBUG});
 
   #ready... Go!
   my $dbix = DBIx::Simple->connect(
     $config->{dsn},
-    $config->{user},
-    $config->{password},
-    { %COMMON_ATTRIBUTES, %{$DRIVER_ATTRIBUTES->{$config->{driver}} || {}},
+    $config->{user}     || '',
+    $config->{password} || '',
+    { %$COMMON_ATTRIBUTES,
       %{$config->{dbh_attributes}}
     }
   );
@@ -80,7 +82,9 @@ sub register {
   $config->{dbix_helper} ||= 'dbix';
   $app->attr($config->{dbix_helper}, sub {$dbix});
   $app->helper($config->{dbix_helper}, $app->dbix);    #add helper dbix
-  DBIx::Simple::Class->dbix($app->dbix);               #do not forget
+  my $DSC = $config->{namespace} || 'DBIx::Simple::Class';
+  eval { Mojo::Loader->load($DSC) || $DSC->dbix($app->dbix) }
+    || DBIx::Simple::Class->dbix($app->dbix);          #do not forget
 
   $self->_load_classes($config);
 
@@ -93,22 +97,22 @@ sub _load_classes {
   if ($config->{namespace} && @{$config->{load_classes}}) {
     my @classes   = @{$config->{load_classes}};
     my $namespace = $config->{namespace};
-    $namespace .= '::' unless $namespace =~ /\:\:$/;
+    $namespace .= '::' unless $namespace =~ /:{2}$/;
     foreach my $class (@classes) {
       if ($class =~ /$namespace/) {
         my $e = Mojo::Loader->load($class);
-        $MEx->throw($e) if $e;
+        carp($e) if ref $e;
         next;
       }
       my $e = Mojo::Loader->load($namespace . $class);
-      $MEx->throw($e) if $e;
+      carp($e) if ref $e;
     }
   }
   elsif ($config->{namespace} && !@{$config->{load_classes}}) {
     my @classes = Mojo::Loader->search($config->{namespace});
     foreach my $class (@classes) {
       my $e = Mojo::Loader->load($class);
-      $MEx->throw($e) if $e;
+      croak($e) if ref $e;
     }
   }
 }

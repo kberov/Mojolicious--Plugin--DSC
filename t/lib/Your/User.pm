@@ -1,5 +1,5 @@
-package My::User;
-use Mojo::Base 'My';
+package Your::User;
+use Mojo::Base 'Your';
 
 sub TABLE   {'users'}
 sub COLUMNS { [qw(id group_id login_name login_password)] }
@@ -31,7 +31,6 @@ sub id {
 my $users_table = <<"TAB";
 CREATE TABLE users(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  group_id INT default 1,
   login_name VARCHAR(12),
   login_password VARCHAR(100)
   )

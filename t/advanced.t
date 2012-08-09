@@ -8,7 +8,7 @@ BEGIN {
   use lib qw(t/lib);
 }
 
-use Test::More tests => 10;
+use Test::More tests => 12;
 
 package main;
 
@@ -21,12 +21,11 @@ my $config = {
   DEBUG          => 0,
   namespace      => 'My',
   load_classes   => ['Groups'],
-  dbh_attributes => {},
+  dbh_attributes => {sqlite_unicode => 1},
   driver         => 'SQLite',
   onconnect_do   => [],
   dbix_helper    => 'dbix',
-  host           => 'localhost',
-  dsn            => 'dbi:SQLite:database=:memory:;host=localhost'
+  dsn            => 'dbi:SQLite:database=:memory:'
 };
 
 isa_ok(plugin('DSC', $config), 'Mojolicious::Plugin::DSC');
@@ -56,6 +55,19 @@ my $user  = My::User->new(
 );
 $user->save;
 
+#additional dbix
+my $your_config = {
+  namespace    => 'Your',
+  load_classes => ['User'],
+  user         => 'me',
+  dbix_helper  => 'your_dbix',
+  dsn          => 'dbi:SQLite:database=:memory:'
+};
+my $your_dbix = plugin('DSC', $your_config);
+
+can_ok(app, 'your_dbix');
+isnt(app->your_dbix, app->dbix, 'two schemas loaded');
+
 get '/' => sub {
   my $self = shift;
   $self->render_text(
@@ -76,5 +88,4 @@ $t->get_ok('/')->status_is(200);
 $t->content_is('Hello ' . $user->login_name . ' from group ' . $group->group . '!');
 
 $t->post_form_ok('/edit/user', {id => 1, login_password => 'alabala123'})
-  ->status_is(200);
-$t->content_is('New password for user петър is alabala123');
+  ->status_is(200)->content_is('New password for user петър is alabala123');
