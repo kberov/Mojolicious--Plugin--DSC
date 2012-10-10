@@ -1,4 +1,5 @@
-package Your::User;
+package    #hide
+  Your::User;
 use Mojo::Base 'Your';
 
 sub TABLE   {'users'}

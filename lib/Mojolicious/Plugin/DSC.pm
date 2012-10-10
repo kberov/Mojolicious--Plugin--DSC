@@ -5,12 +5,12 @@ use Mojo::Util qw(camelize);
 use Carp;
 
 
-our $VERSION = '0.60';
+our $VERSION = '0.991';
 
 #some known good defaults
 my $COMMON_ATTRIBUTES = {
-  RaiseError  => 1,
-  AutoCommit  => 1,
+  RaiseError => 1,
+  AutoCommit => 1,
 };
 
 
@@ -60,16 +60,12 @@ sub register {
       . 'must be an ARRAY reference containing a list of classes to load.')
     unless (ref($config->{load_classes}) eq 'ARRAY');
 
-  DBIx::Simple::Class->DEBUG($config->{DEBUG});
-
   #ready... Go!
   my $dbix = DBIx::Simple->connect(
     $config->{dsn},
     $config->{user}     || '',
     $config->{password} || '',
-    { %$COMMON_ATTRIBUTES,
-      %{$config->{dbh_attributes}}
-    }
+    {%$COMMON_ATTRIBUTES, %{$config->{dbh_attributes}}}
   );
   $config->{onconnect_do} ||= [];
   if (!ref($config->{onconnect_do})) {
@@ -79,12 +75,15 @@ sub register {
     $dbix->dbh->do($sql);
   }
 
-  $config->{dbix_helper} ||= 'dbix';
-  $app->attr($config->{dbix_helper}, sub {$dbix});
-  $app->helper($config->{dbix_helper}, $app->dbix);    #add helper dbix
+  my $dbix_helper = $config->{dbix_helper} ||= 'dbix';
+  $app->attr($dbix_helper, sub {$dbix});
+  $app->helper($dbix_helper, $app->$dbix_helper);    #add helper dbix
   my $DSC = $config->{namespace} || 'DBIx::Simple::Class';
-  eval { Mojo::Loader->load($DSC) || $DSC->dbix($app->dbix) }
-    || DBIx::Simple::Class->dbix($app->dbix);          #do not forget
+
+  #make sure user classes have same dbix ready for use
+  eval { Mojo::Loader->load($DSC) || $DSC->dbix($app->$dbix_helper) }
+    || DBIx::Simple::Class->dbix($app->$dbix_helper);
+  $DSC->DEBUG($config->{DEBUG});
 
   $self->_load_classes($config);
 
@@ -189,7 +188,7 @@ L<Mojolicious::Plugin> and implements the following new ones.
 
 Register plugin in L<Mojolicious> application.
 
-=head1 config
+=head2 config
 
 This plugin own configuration. Returns a HASHref.
 

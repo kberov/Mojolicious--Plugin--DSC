@@ -9,7 +9,7 @@ WriteMakefile(
   ABSTRACT_FROM => 'lib/Mojolicious/Plugin/DSC.pm',
   AUTHOR        => q{Красимир Беров <berov@cpan.org>},
   LICENSE       => 'artistic_2',
-  PREREQ_PM     => {'Mojolicious' => '2.0', 'DBIx::Simple::Class' => '0.62'},
+  PREREQ_PM     => {'Mojolicious' => '2.0', 'DBIx::Simple::Class' => '0.991'},
   META_MERGE    => {
     requires  => {perl => '5.010001'},
     resources => {

@@ -1,6 +1,7 @@
 {
 
-  package My;    #our schema
+  package    #hide
+    My;      #our schema
   use 5.010;
   use strict;
   use warnings;
