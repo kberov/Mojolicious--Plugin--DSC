@@ -4,7 +4,6 @@ use DBIx::Simple::Class;
 use Mojo::Util qw(camelize);
 use Carp;
 
-
 our $VERSION = '0.991';
 
 #some known good defaults
@@ -12,7 +11,6 @@ my $COMMON_ATTRIBUTES = {
   RaiseError => 1,
   AutoCommit => 1,
 };
-
 
 has config => sub { {} };
 
@@ -75,18 +73,22 @@ sub register {
     $dbix->dbh->do($sql);
   }
 
+  #Add $dbix as attribute and helper where needed
   my $dbix_helper = $config->{dbix_helper} ||= 'dbix';
   $app->attr($dbix_helper, sub {$dbix});
   $app->helper($dbix_helper, $app->$dbix_helper);    #add helper dbix
-  my $DSC = $config->{namespace} || 'DBIx::Simple::Class';
-
-  #make sure user classes have same dbix ready for use
-  eval { Mojo::Loader->load($DSC) || $DSC->dbix($app->$dbix_helper) }
-    || DBIx::Simple::Class->dbix($app->$dbix_helper);
-  $DSC->DEBUG($config->{DEBUG});
+  my $DSCS   = $config->{namespace};
+  my $schema = Mojo::Util::class_to_path($DSCS);
+  if (eval { require $schema; }) {
+    $DSCS->DEBUG($config->{DEBUG});
+    $DSCS->dbix($app->$dbix_helper);
+  }
+  else {
+    DBIx::Simple::Class->DEBUG($config->{DEBUG});
+    DBIx::Simple::Class->dbix($app->$dbix_helper);
+  }
 
   $self->_load_classes($config);
-
   $self->config($config);
   return $self;
 }    #end register
