@@ -105,7 +105,7 @@ my $t = Test::Mojo->new;
 $t->get_ok('/')->status_is(200);
 $t->content_is('Hello ' . $user->login_name . ' from group ' . $group->group . '!');
 
-$t->post_form_ok('/edit/user', {id => 1, login_password => 'alabala123'})
+$t->post_ok('/edit/user', form => {id => 1, login_password => 'alabala123'})
   ->status_is(200)->content_is('New password for user петър is alabala123');
 
 =comment

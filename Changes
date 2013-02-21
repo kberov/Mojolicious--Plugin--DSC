@@ -1,5 +1,11 @@
 Revision history for Mojolicious::Plugin::DSC
 
+0.992  2013-02-21 10:49:26 EET
+       - Updated advanced.t to not use the deprecated post_form_ok()
+       but post_ok() with named parameter "form".
+       - Avoided basic tests on SunOS/Solaris. 
+       See http://www.cpantesters.org/cpan/report/d083269c-7a9e-11e2-a1fe-9ffbdb32a9a6 
+
 0.991  2012-10-11 01:43:05 EEST
       - Fixed register(). Now using $app->$dbix_helper - not $app->dbix.
       - Fixed POD so Test::Pod::Coverage does not report "config" as naked.

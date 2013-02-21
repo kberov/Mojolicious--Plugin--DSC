@@ -7,8 +7,16 @@ BEGIN {
   use lib qw(t/lib);
 }
 
-use Test::More tests => 8;
-
+use Test::More;
+BEGIN{
+  if( $^O =~ m'sun'i ) {
+    plan skip_all => 'Avoid (Can\'t locate object method "sysread" via package "FileHandle") on SunOS/Solaris';
+    exit();
+  }
+  else {
+    plan tests => 8;
+  }
+}
 package main;
 use Mojolicious::Plugin::DSC;
 use Mojolicious::Lite;
