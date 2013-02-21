@@ -1,5 +1,8 @@
 Revision history for Mojolicious::Plugin::DSC
 
+0.993  2013-02-21 13:07:45 EET
+       -Updated required Mojolicious version to 3.85
+
 0.992  2013-02-21 10:49:26 EET
        - Updated advanced.t to not use the deprecated post_form_ok()
        but post_ok() with named parameter "form".
