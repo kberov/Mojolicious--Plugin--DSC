@@ -1,27 +1,5 @@
-use Mojo::Base -strict;
-
-# Disable IPv6 and libev
-BEGIN {
-  $ENV{MOJO_NO_IPV6} = 1;
-  $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';
-  use lib qw(t/lib);
-}
-
 use Test::More;
-BEGIN{
-  if( $^O =~ m'sun'i ) {
-    plan skip_all => 'Avoid (Can\'t locate object method "sysread" via package "FileHandle") on SunOS/Solaris';
-    exit();
-  }
-  else {
-    plan tests => 8;
-  }
-}
-package main;
-use Mojolicious::Plugin::DSC;
 use Mojolicious::Lite;
-use Test::Mojo;
-use Data::Dumper;
 
 my $help_count = 1;
 my $config     = {};
@@ -75,4 +53,6 @@ is(plugin('DSC', $config)->config->{namespace}, 'Memory', 'namespace');
 $config = {dsn => 'dbi:SQLite:dbname=:memory:', dbix_helper => 'dbix_' . $help_count++};
 
 isa_ok(plugin('DSC', $config), 'Mojolicious::Plugin::DSC', 'proper dsn');
+
+done_testing();
 

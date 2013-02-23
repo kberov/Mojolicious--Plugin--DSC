@@ -1,16 +1,7 @@
 use Mojo::Base -strict;
-use utf8;
-
-# Disable IPv6 and libev
-BEGIN {
-  $ENV{MOJO_NO_IPV6} = 1;
-  $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';
-  use lib qw(t/lib);
-}
+use lib qw(t/lib);
 
 use Test::More tests=>15;
-
-package main;
 
 use Mojolicious::Lite;
 use Test::Mojo;
