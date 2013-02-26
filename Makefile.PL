@@ -7,6 +7,7 @@ WriteMakefile(
   NAME          => 'Mojolicious::Plugin::DSC',
   VERSION_FROM  => 'lib/Mojolicious/Plugin/DSC.pm',
   ABSTRACT_FROM => 'lib/Mojolicious/Plugin/DSC.pm',
+  MIN_PERL_VERSION => '5.10.1',
   AUTHOR        => q{Красимир Беров <berov@cpan.org>},
   LICENSE       => 'artistic_2',
   PREREQ_PM     => {'Mojolicious' => '3.85', 'DBIx::Simple::Class' => '0.991'},

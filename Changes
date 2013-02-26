@@ -1,5 +1,8 @@
 Revision history for Mojolicious::Plugin::DSC
 
+0.995  2013-02-26 23:40:38 EET
+      - Explicitely state MIN_PERL_VERSION => '5.10.1' in Makefile.PL.
+
 0.994  2013-02-23 16:06:50 EET
        - Cleaned up unneeded "use"s in tests hoping strange fails will dissapear.
 
