@@ -99,4 +99,4 @@ $t->content_is('Hello ' . $user->login_name . ' from group ' . $group->group . '
 $t->post_ok('/edit/user', form => {id => 1, login_password => 'alabala123'})
   ->status_is(200)->content_is('New password for user петър is alabala123');
 
-=comment
+
