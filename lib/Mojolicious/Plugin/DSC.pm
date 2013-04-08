@@ -4,7 +4,7 @@ use DBIx::Simple::Class;
 use Mojo::Util qw(camelize);
 use Carp;
 
-our $VERSION = '0.995';
+our $VERSION = '0.996';
 
 #some known good defaults
 my $COMMON_ATTRIBUTES = {
@@ -57,37 +57,41 @@ sub register {
   croak('"load_classes" configuration directive '
       . 'must be an ARRAY reference containing a list of classes to load.')
     unless (ref($config->{load_classes}) eq 'ARRAY');
-
-  #ready... Go!
-  my $dbix = DBIx::Simple->connect(
-    $config->{dsn},
-    $config->{user}     || '',
-    $config->{password} || '',
-    {%$COMMON_ATTRIBUTES, %{$config->{dbh_attributes}}}
-  );
   $config->{onconnect_do} ||= [];
-  if (!ref($config->{onconnect_do})) {
-    $config->{onconnect_do} = [$config->{onconnect_do}];
-  }
-  for my $sql (@{$config->{onconnect_do}}) {
-    $dbix->dbh->do($sql);
-  }
+
+  #Postpone connecting to the database for the first helper call.
+  my $helper_builder = sub {
+
+    #ready... Go!
+    my $dbix = DBIx::Simple->connect(
+      $config->{dsn},
+      $config->{user}     || '',
+      $config->{password} || '',
+      {%$COMMON_ATTRIBUTES, %{$config->{dbh_attributes}}}
+    );
+    if (!ref($config->{onconnect_do})) {
+      $config->{onconnect_do} = [$config->{onconnect_do}];
+    }
+    for my $sql (@{$config->{onconnect_do}}) {
+      $dbix->dbh->do($sql) if $sql;
+    }
+    my $DSCS   = $config->{namespace};
+    my $schema = Mojo::Util::class_to_path($DSCS);
+    if (eval { require $schema; }) {
+      $DSCS->DEBUG($config->{DEBUG});
+      $DSCS->dbix($dbix);
+    }
+    else {
+      DBIx::Simple::Class->DEBUG($config->{DEBUG});
+      DBIx::Simple::Class->dbix($dbix);
+    }
+    return $dbix;
+  };
 
   #Add $dbix as attribute and helper where needed
   my $dbix_helper = $config->{dbix_helper} ||= 'dbix';
-  $app->attr($dbix_helper, sub {$dbix});
-  $app->helper($dbix_helper, $app->$dbix_helper);    #add helper dbix
-  my $DSCS   = $config->{namespace};
-  my $schema = Mojo::Util::class_to_path($DSCS);
-  if (eval { require $schema; }) {
-    $DSCS->DEBUG($config->{DEBUG});
-    $DSCS->dbix($app->$dbix_helper);
-  }
-  else {
-    DBIx::Simple::Class->DEBUG($config->{DEBUG});
-    DBIx::Simple::Class->dbix($app->$dbix_helper);
-  }
-
+  $app->attr($dbix_helper, $helper_builder);
+  $app->helper($dbix_helper, $helper_builder);
   $self->_load_classes($config);
   $self->config($config);
   return $self;

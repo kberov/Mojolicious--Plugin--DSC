@@ -29,17 +29,5 @@ sub id {
   $self->{data}{id} //= $self->CHECKS->{id}{default};    #getting value
 }
 
-my $users_table = <<"TAB";
-CREATE TABLE users(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  group_id INT default 1,
-  login_name VARCHAR(12),
-  login_password VARCHAR(100)
-  )
-TAB
-
-my $dbh = __PACKAGE__->dbix->dbh;
-$dbh->do($users_table)
-  unless $dbh->table_info(undef, undef, 'users', 'TABLE')->fetchrow_hashref;
 
 1;

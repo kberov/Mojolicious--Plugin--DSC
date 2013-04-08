@@ -10,7 +10,7 @@ WriteMakefile(
   MIN_PERL_VERSION => '5.10.1',
   AUTHOR        => q{Красимир Беров <berov@cpan.org>},
   LICENSE       => 'artistic_2',
-  PREREQ_PM     => {'Mojolicious' => '3.85', 'DBIx::Simple::Class' => '0.991'},
+  PREREQ_PM     => {'Mojolicious' => '3.85', 'DBIx::Simple::Class' => '0.995'},
   META_MERGE    => {
     requires  => {perl => '5.010001'},
     resources => {

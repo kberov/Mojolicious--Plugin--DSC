@@ -22,5 +22,5 @@ sub CHECKS {
   }
 }
 __PACKAGE__->QUOTE_IDENTIFIERS(1);    #no problem now
-__PACKAGE__->BUILD;                   #dbix/dbh must be connected now
+#__PACKAGE__->BUILD;                   #dbix/dbh must be connected now
 

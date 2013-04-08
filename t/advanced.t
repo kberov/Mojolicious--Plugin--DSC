@@ -1,11 +1,15 @@
 use Mojo::Base -strict;
 use lib qw(t/lib);
 
-use Test::More tests=>15;
+use Test::More;
 
 use Mojolicious::Lite;
 use Test::Mojo;
 use Data::Dumper;
+use File::Temp qw(tmpnam);
+
+my $ddbix = tmpnam();
+my $ydbix = tmpnam();
 
 #Suppress some warnings from DBIx::Simple::Class during tests.
 local $SIG{__WARN__} = sub {
@@ -31,37 +35,47 @@ my $config = {
   driver         => 'SQLite',
   onconnect_do   => [],
   dbix_helper    => 'ddbix',
-  dsn            => 'dbi:SQLite:database=:memory:'
+  dsn            => 'dbi:SQLite:database=' . $ddbix
 };
-
-isa_ok(plugin('DSC', $config), 'Mojolicious::Plugin::DSC');
 
 
 my $my_groups_table = <<"TAB";
-CREATE TABLE my_groups(
+CREATE TABLE my_groups (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   "group" VARCHAR(12),
   "is' enabled" INT DEFAULT 0
   )
 TAB
 
+my $users_table = <<"TAB";
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  group_id INT default 1,
+  login_name VARCHAR(12),
+  login_password VARCHAR(100)
+  )
+TAB
 
 $config->{load_classes} = ['My::User', 'Groups'];
 
 isa_ok(plugin('DSC', $config), 'Mojolicious::Plugin::DSC');
 
-ok(app->ddbix->query($my_groups_table), 'app->ddbix works');
+ok(app->ddbix->dbh->do($users_table),     'app->ddbix->dbh->do works');
+ok(app->ddbix->dbh->do($my_groups_table), 'app->ddbix->dbh->do works2');
 
 ok(app->ddbix->query('INSERT INTO my_groups ("group") VALUES(?)', 'pojo'),
   'app->ddbix->query works');
 
 my $group = My::Groups->find(1);
-my $user  = My::User->new(
+is($group->id, 1, 'Group 1 found');
+my $user = My::User->new(
   group_id       => $group->id,
   login_name     => 'петър',
   login_password => 'secretpass12'
 );
 $user->save;
+is($user->id, 1, 'User 1 saved');
+
 
 #additional dbix
 my $your_config = {
@@ -69,7 +83,7 @@ my $your_config = {
   load_classes => ['User'],
   user         => 'me',
   dbix_helper  => 'your_dbix',
-  dsn          => 'dbi:SQLite:database=:memory:'
+  dsn          => 'dbi:SQLite:database=' . $ddbix
 };
 
 my $your_dbix = plugin('DSC', $your_config);
@@ -79,6 +93,8 @@ isnt(app->your_dbix, app->ddbix, 'two schemas loaded');
 
 get '/' => sub {
   my $self = shift;
+  my $group_row =
+    $self->ddbix->query('SELECT * FROM my_groups WHERE "group"=?', $group->group);
   $self->render_text(
     'Hello ' . $user->login_name . ' from group ' . $group->group . '!');
 };
@@ -99,4 +115,5 @@ $t->content_is('Hello ' . $user->login_name . ' from group ' . $group->group . '
 $t->post_ok('/edit/user', form => {id => 1, login_password => 'alabala123'})
   ->status_is(200)->content_is('New password for user петър is alabala123');
 
+done_testing;
 

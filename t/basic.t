@@ -30,7 +30,7 @@ is_deeply(
 
 #warn app->dumper($generated_config);
 $config->{dbix_helper} = $config->{dbix_helper} . $help_count++;
-isa_ok(eval { plugin('DSC', $config) } || $@, 'Mojolicious::Plugin::DSC', 'database');
+isa_ok(eval { plugin('DSC', $config) } || $@, 'Mojolicious::Plugin::DSC');
 
 $config = {dsn => 'garbage'};
 like((eval { plugin 'DSC', $config }, $@), qr/Can't parse DBI DSN/, 'garbage dsn');
