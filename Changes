@@ -1,5 +1,8 @@
 Revision history for Mojolicious::Plugin::DSC
 
+0.997  2013-05-26 15:51:41 EEST
+      - Made tests compatible with Mojolicious 4.0+
+
 0.996  2013-04-09 01:22:58 EEST
       - Postponed connecting to the database for the time
       when the helpers are called for the first time.

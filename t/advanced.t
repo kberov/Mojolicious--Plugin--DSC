@@ -95,8 +95,8 @@ get '/' => sub {
   my $self = shift;
   my $group_row =
     $self->ddbix->query('SELECT * FROM my_groups WHERE "group"=?', $group->group);
-  $self->render_text(
-    'Hello ' . $user->login_name . ' from group ' . $group->group . '!');
+  $self->render(
+    text => 'Hello ' . $user->login_name . ' from group ' . $group->group . '!');
 };
 
 post '/edit/user' => sub {
@@ -104,8 +104,9 @@ post '/edit/user' => sub {
   my $user = My::User->find($c->param('id'));
   $user->login_password($c->param('login_password'));
   $user->save;
-  $c->render_text(
-    'New password for user ' . $user->login_name . ' is ' . $user->login_password);
+  $c->render(text => 'New password for user '
+      . $user->login_name . ' is '
+      . $user->login_password);
 };
 
 my $t = Test::Mojo->new;
