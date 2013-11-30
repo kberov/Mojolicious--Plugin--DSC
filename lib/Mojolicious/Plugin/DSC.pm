@@ -4,7 +4,7 @@ use DBIx::Simple::Class;
 use Mojo::Util qw(camelize);
 use Carp;
 
-our $VERSION = '0.997';
+our $VERSION = '0.998';
 
 #some known good defaults
 my $COMMON_ATTRIBUTES = {
@@ -23,6 +23,12 @@ sub register {
   $config->{load_classes} ||= [];
   $config->{DEBUG} //= ($app->mode =~ /^dev/ ? 1 : 0);
   $config->{dbh_attributes} ||= {};
+  croak('"load_classes" configuration directive '
+      . 'must be an ARRAY reference containing a list of classes to load.')
+    unless (ref($config->{load_classes}) eq 'ARRAY');
+  croak('"dbh_attributes" configuration directive '
+      . 'must be a HASH reference. See DBI/Database_Handle_Attributes.')
+    unless (ref($config->{dbh_attributes}) eq 'HASH');
 
   #prepared Data Source Name?
   if (!$config->{dsn}) {
@@ -54,9 +60,6 @@ sub register {
       {%{$config->{dbh_attributes}}, ($attr_hash ? %$attr_hash : ())};
   }
 
-  croak('"load_classes" configuration directive '
-      . 'must be an ARRAY reference containing a list of classes to load.')
-    unless (ref($config->{load_classes}) eq 'ARRAY');
   $config->{onconnect_do} ||= [];
 
   #Postpone connecting to the database for the first helper call.
@@ -82,6 +85,8 @@ sub register {
       $DSCS->dbix($dbix);
     }
     else {
+      $app->log->warn(
+        'Culd not load ' . $schema . '... Trying to continue without it.');
       DBIx::Simple::Class->DEBUG($config->{DEBUG});
       DBIx::Simple::Class->dbix($dbix);
     }
@@ -92,32 +97,46 @@ sub register {
   my $dbix_helper = $config->{dbix_helper} ||= 'dbix';
   $app->attr($dbix_helper, $helper_builder);
   $app->helper($dbix_helper, $helper_builder);
-  $self->_load_classes($config);
+  $self->_load_classes($app, $config);
   $self->config($config);
   return $self;
 }    #end register
 
 sub _load_classes {
-  my ($self, $config) = @_;
-  if ($config->{namespace} && @{$config->{load_classes}}) {
+  my ($self, $app, $config) = @_;
+  state $load_error =
+      'You may need to create it first using the dsc_dump_schema.pl script.'
+    . $/
+    . 'Try: dsc_dump_schema.pl --help'
+    . $/;
+
+  if ($config->{namespace} && scalar @{$config->{load_classes}}) {
     my @classes   = @{$config->{load_classes}};
     my $namespace = $config->{namespace};
     $namespace .= '::' unless $namespace =~ /:{2}$/;
     foreach my $class (@classes) {
-      if ($class =~ /$namespace/) {
+      if ($class =~ /^$namespace/) {
         my $e = Mojo::Loader->load($class);
-        carp($e) if ref $e;
+        Carp::confess(ref $e ? "Exception: $e" : "$class not found: ($load_error)")
+          if $e;
         next;
       }
       my $e = Mojo::Loader->load($namespace . $class);
-      carp($e) if ref $e;
+      if (ref $e) {
+        Carp::confess("Exception: $e");
+      }
+      elsif ($e) {
+        my $e2 = Mojo::Loader->load($class);
+        Carp::confess(ref $e2 ? "Exception: $e2" : "$class not found: ($load_error)")
+          if $e2;
+      }
     }
   }
-  elsif ($config->{namespace} && !@{$config->{load_classes}}) {
-    my @classes = Mojo::Loader->search($config->{namespace});
-    foreach my $class (@classes) {
+  elsif ($config->{namespace} && !scalar @{$config->{load_classes}}) {
+    my $classes = Mojo::Loader->search($config->{namespace});
+    foreach my $class (@$classes) {
       my $e = Mojo::Loader->load($class);
-      croak($e) if ref $e;
+      croak($e) if $e;
     }
   }
 }

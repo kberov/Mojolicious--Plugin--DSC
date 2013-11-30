@@ -22,7 +22,7 @@ local $SIG{__WARN__} = sub {
     ok($_[0], $subroutine . " warns '$1' OK");
   }
   else {
-    warn $_[0];
+    warn @_;
   }
 };
 plugin('Charset', {charset => 'UTF-8'});

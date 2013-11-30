@@ -1,5 +1,10 @@
 Revision history for Mojolicious::Plugin::DSC
 
+0.998  2013-12-01 00:12:38 CET
+      - Fixed loading for modules out of $config->{namespace}.
+      - Fixed loading for modules when $config->{load_classess}
+      is empty.
+
 0.997  2013-05-26 15:51:41 EEST
       - Made tests compatible with Mojolicious 4.0+
 

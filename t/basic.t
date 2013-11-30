@@ -1,6 +1,7 @@
 use Test::More;
 use Mojolicious::Lite;
-
+use File::Basename qw(dirname);
+use lib dirname(__FILE__) . '/lib';
 my $help_count = 1;
 my $config     = {};
 like(
@@ -45,7 +46,7 @@ like(
   qr/must be an ARRAY reference /,
   'load_classes'
 );
-$config->{namespace}    = '';
+delete $config->{namespace};
 $config->{load_classes} = ['My::User'];
 
 #get namespace from dbname/$schema
