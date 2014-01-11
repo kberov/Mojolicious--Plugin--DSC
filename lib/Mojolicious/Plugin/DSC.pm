@@ -4,7 +4,7 @@ use DBIx::Simple::Class;
 use Mojo::Util qw(camelize);
 use Carp;
 
-our $VERSION = '0.998';
+our $VERSION = '0.999';
 
 #some known good defaults
 my $COMMON_ATTRIBUTES = {
@@ -85,11 +85,11 @@ sub register {
       $DSCS->dbix($dbix);
     }
     else {
-      $app->log->warn(
-        'Culd not load ' . $schema . '... Trying to continue without it.');
+      Carp::carp("($@) Trying to continue without $schema...");
       DBIx::Simple::Class->DEBUG($config->{DEBUG});
       DBIx::Simple::Class->dbix($dbix);
     }
+    $self->_load_classes($app, $config);
     return $dbix;
   };
 
@@ -97,18 +97,18 @@ sub register {
   my $dbix_helper = $config->{dbix_helper} ||= 'dbix';
   $app->attr($dbix_helper, $helper_builder);
   $app->helper($dbix_helper, $helper_builder);
-  $self->_load_classes($app, $config);
   $self->config($config);
+  $app->$dbix_helper() if (!$config->{postpone_connect});
   return $self;
 }    #end register
 
+
 sub _load_classes {
   my ($self, $app, $config) = @_;
-  state $load_error =
-      'You may need to create it first using the dsc_dump_schema.pl script.'
-    . $/
-    . 'Try: dsc_dump_schema.pl --help'
-    . $/;
+  state $load_error =<<"ERR";
+You may need to create it first using the dsc_dump_schema.pl script.'
+Try: dsc_dump_schema.pl --help'
+ERR
 
   if ($config->{namespace} && scalar @{$config->{load_classes}}) {
     my @classes   = @{$config->{load_classes}};
@@ -139,10 +139,12 @@ sub _load_classes {
       croak($e) if $e;
     }
   }
+  return;
 }
+
 1;
 
-__END__
+=pod
 
 =encoding utf8
 
@@ -158,23 +160,23 @@ Mojolicious::Plugin::DSC - use DBIx::Simple::Class in your application.
 
   # Mojolicious::Lite
   plugin 'DSC', $config;
-
-  #use
-  my $user = $app->dbix->query('SELECT * FROM users WHERE user=?','ivan');
   
-  #...and if you added My::User to 'load_classes' (see below)
+  my $user = My::User->find(1234);
+  #or
   my $user = My::User->query('SELECT * FROM users WHERE user=?','ivan');
+  #or if SQL::Abstract is isnstalled
+  my $user = My::User->select(user=>'ivan');
+  
   
 =head1 DESCRIPTION
 
 Mojolicious::Plugin::DSC is a L<Mojolicious> plugin that helps you
 use L<DBIx::Simple::Class> in your application.
-It also adds a helper (C<$app-E<gt>dbix> by default) which is a DBIx::Simple instance.
+It also adds an app attribute (C<$app-E<gt>dbix>) and controller helper (C<$c-E<gt>dbix>) 
+which is a L<DBIx::Simple> instance.
 
 =head1 CONFIGURATION
 
-You can add all classes from your schema to the configuration 
-and they will be loaded so you do not have to C<use My::Table>.
 The configuration is pretty flexible:
 
   # in Mojolicious startup()
@@ -201,6 +203,156 @@ The configuration is pretty flexible:
     #now you can use $app->DBIX instead of $app->dbix
     dbix_helper => 'DBIX' 
   });
+
+The following parameters can be provided:
+
+=head2 load_classes
+
+An ARRAYREF of classes to be loaded. If not provided, 
+all classes under L<namespace> will be loaded.
+Classes are expected to be already dumped as files using 
+C<dsc_dump_schema.pl> from an existing database.
+
+  #all classes under My::Schema::Class
+  $app->plugin('DSC', {
+    namespace => My::Schema::Class,
+  });
+  #only My::Schema::Class::Groups and My::Schema::Class::Users
+  $app->plugin('DSC', {
+    namespace => My::Schema::Class,
+    load_classes => ['Groups', 'Users']
+  });
+
+=head2 DEBUG
+
+Boolean. When the current L<Mojolicious/mode> is C<development> this value
+is 1.
+
+  $app->plugin('DSC', {
+    DEBUG => 1,
+    namespace => My::Schema::Class,
+    load_classes => ['Groups', 'Users']
+  });
+
+=head2 dbh_attributes
+
+HASHREF. Attributes passed to L<DBIx::Simple/connect>.
+Default values are:
+
+  {
+    RaiseError => 1,
+    AutoCommit => 1,
+  };
+
+They can be overriden:
+
+  $app->plugin('DSC', {
+    namespace => My::Schema::Class,
+    dbh_attributes =>{ AutoCommit => 0, sqlite_unicode => 1 }
+  });
+
+=head2 dsn
+
+Connection string parsed using L<DBI/parse_dsn> and passed to L<DBIx::Simple/connect>.
+
+From this string we guess the L</driver>, L</database>, L<host>, L<port>
+and the L<namespace> which ends up as camelised form of 
+the L</database> name.
+
+If L</dsn> is not passed most of the configuration values above must 
+be provided so a valid connection string can be constructed.
+If L</dsn> is provided it will be preferred over the above parameters
+(excluding namespace) because the developer should know better how 
+exactly to connect to the database.
+
+  $app->plugin('DSC', {
+    namespace => My::Schema::Class,
+    dbh_attributes => {sqlite_unicode => 1},
+    dsn => 'dbi:SQLite:database=myfile.sqlite'
+  });
+
+=head2 driver
+
+String. One of "mysql","SQLite","Pg" etc...
+This string is prepended with "dbi:". No default value.
+
+  $app->plugin('DSC', {
+    driver => 'mysql',
+    dbh_attributes => {sqlite_unicode => 1},
+    dsn => 'dbi:SQLite:database=myfile.sqlite'
+  });
+
+=head2 database
+
+String - the database name. No default value.
+
+  $app->plugin('DSC', {
+    database       => app->home->rel_file('etc/ado.sqlite'),
+    dbh_attributes => {sqlite_unicode => 1},
+    driver         => 'SQLite',
+    namespace      => 'Ado::Model',
+  });
+
+=head2 host
+
+String. defaults to C<localhost>.
+
+=head2 port
+
+String. Not added to the connection string if not provided.
+
+=head2 namespace
+
+The class name of your schema class. If not provided the value will be guessed
+from the L<database> or L<dsn>. It is recommended to provide your 
+schema class name.
+
+  $app->plugin('DSC', {
+    database       => app->home->rel_file('etc/ado.sqlite'),
+    dbh_attributes => {sqlite_unicode => 1},
+    driver         => 'SQLite',
+    namespace      => 'My::Model',
+  });
+
+
+=head2 user
+
+String. Username used to connect to the database.
+
+=head2 password
+
+String. Password used to connect to the database.
+
+=head2 onconnect_do
+
+ARRAYREF of SQL statements which will be executed right after 
+establiching the connection.
+
+  $app->plugin('DSC', {
+    database       => app->home->rel_file('etc/ado.sqlite'),
+    dbh_attributes => {sqlite_unicode => 1},
+    driver         => 'SQLite',
+    namespace      => 'Ado::Model',
+    onconnect_do   => [
+        'PRAGMA encoding = "UTF-8"',
+        'PRAGMA foreign_keys = ON',
+        'PRAGMA temp_store = 2',    #MEMORY
+        'VACUUM',
+    ],
+  });
+
+
+=head2 postpone_connect
+
+Boolean. If set, establishing the connection to the database will 
+be postponed for the first call of C<$app-E<gt>dbix> or the method 
+name you provided for the L</dbix_helper>.
+
+=head2 dbix_helper
+
+String. The name of the helper method that can be created to invoke/use 
+directly the L<DBIx::Simple> instance on your controller or application.
+Defaults to C<dbix>.
 
 =head1 METHODS
 

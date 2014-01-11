@@ -2,6 +2,20 @@ use Test::More;
 use Mojolicious::Lite;
 use File::Basename qw(dirname);
 use lib dirname(__FILE__) . '/lib';
+#Suppress some warnings from DBIx::Simple::Class during tests.
+local $SIG{__WARN__} = sub {
+  if (
+    $_[0] =~ /(ddbix\sredefined
+         |SQL\sfrom|locate\sMemory\.pm\sin)/x
+    )
+  {
+    my ($package, $filename, $line, $subroutine) = caller(1);
+    ok($_[0], $subroutine . " warns '$1' OK");
+  }
+  else {
+    warn @_;
+  }
+};
 my $help_count = 1;
 my $config     = {};
 like(
