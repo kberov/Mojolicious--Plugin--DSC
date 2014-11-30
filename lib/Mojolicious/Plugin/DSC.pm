@@ -77,7 +77,7 @@ sub register {
     }
     for my $sql (@{$config->{onconnect_do}}) {
       next unless $sql;
-      if (ref($sql) eq 'CODE'){$sql->($dbix); next;}
+      if (ref($sql) eq 'CODE') { $sql->($dbix); next; }
       $dbix->dbh->do($sql);
     }
     my $DSCS   = $config->{namespace};
@@ -98,7 +98,7 @@ sub register {
   #Add $dbix as attribute and helper where needed
   my $dbix_helper = $config->{dbix_helper} ||= 'dbix';
   $app->helper($dbix_helper, $helper_builder) unless $app->can($dbix_helper);
-  $self->config($config); 
+  $self->config($config);
   $app->$dbix_helper() if (!$config->{postpone_connect});
   return $self;
 }    #end register
@@ -106,7 +106,7 @@ sub register {
 
 sub _load_classes {
   my ($self, $app, $config) = @_;
-  state $load_error =<<"ERR";
+  state $load_error = <<"ERR";
 You may need to create it first using the dsc_dump_schema.pl script.'
 Try: dsc_dump_schema.pl --help'
 ERR

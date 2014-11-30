@@ -2,6 +2,7 @@ use Test::More;
 use Mojolicious::Lite;
 use File::Basename qw(dirname);
 use lib dirname(__FILE__) . '/lib';
+
 #Suppress some warnings from DBIx::Simple::Class during tests.
 local $SIG{__WARN__} = sub {
   if (
