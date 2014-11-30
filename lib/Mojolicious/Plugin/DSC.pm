@@ -4,7 +4,7 @@ use DBIx::Simple::Class;
 use Mojo::Util qw(camelize);
 use Carp;
 
-our $VERSION = '0.999';
+our $VERSION = '1.000';
 
 #some known good defaults
 my $COMMON_ATTRIBUTES = {
@@ -76,7 +76,9 @@ sub register {
       $config->{onconnect_do} = [$config->{onconnect_do}];
     }
     for my $sql (@{$config->{onconnect_do}}) {
-      $dbix->dbh->do($sql) if $sql;
+      next unless $sql;
+      if (ref($sql) eq 'CODE'){$sql->($dbix); next;}
+      $dbix->dbh->do($sql);
     }
     my $DSCS   = $config->{namespace};
     my $schema = Mojo::Util::class_to_path($DSCS);
@@ -95,9 +97,8 @@ sub register {
 
   #Add $dbix as attribute and helper where needed
   my $dbix_helper = $config->{dbix_helper} ||= 'dbix';
-  $app->attr($dbix_helper, $helper_builder);
-  $app->helper($dbix_helper, $helper_builder);
-  $self->config($config);
+  $app->helper($dbix_helper, $helper_builder) unless $app->can($dbix_helper);
+  $self->config($config); 
   $app->$dbix_helper() if (!$config->{postpone_connect});
   return $self;
 }    #end register
@@ -193,6 +194,7 @@ The configuration is pretty flexible:
     onconnect_do => [
       'SET NAMES UTF8',
       'SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO"'
+      sub{my $dbix = shift; do_something_complicated($dbix)}
     ],
     dbh_attributes => {AutoCommit=>0},
     namespace => 'My',
@@ -325,7 +327,7 @@ String. Password used to connect to the database.
 
 =head2 onconnect_do
 
-ARRAYREF of SQL statements which will be executed right after 
+ARRAYREF of SQL statements and callbacks which will be executed right after
 establiching the connection.
 
   $app->plugin('DSC', {
@@ -338,19 +340,22 @@ establiching the connection.
         'PRAGMA foreign_keys = ON',
         'PRAGMA temp_store = 2',    #MEMORY
         'VACUUM',
+        sub{
+          shift->dbh->sqlite_create_function( 'now', 0, sub { return time } );
+        }
     ],
   });
 
 
 =head2 postpone_connect
 
-Boolean. If set, establishing the connection to the database will 
-be postponed for the first call of C<$app-E<gt>dbix> or the method 
+Boolean. If set, establishing the connection to the database will
+be postponed for the first call of C<$app-E<gt>dbix> or the method
 name you provided for the L</dbix_helper>.
 
 =head2 dbix_helper
 
-String. The name of the helper method that can be created to invoke/use 
+String. The name of the helper method that can be created to invoke/use
 directly the L<DBIx::Simple> instance on your controller or application.
 Defaults to C<dbix>.
 

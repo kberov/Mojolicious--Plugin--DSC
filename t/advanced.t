@@ -33,7 +33,9 @@ my $config = {
   load_classes   => ['Groups'],
   dbh_attributes => {sqlite_unicode => 1},
   driver         => 'SQLite',
-  onconnect_do   => [],
+  onconnect_do   => [sub {
+    shift->dbh->sqlite_create_function( 'upper', 1, sub { return uc(shift) } );
+    }],
   dbix_helper    => 'ddbix',
   dsn            => 'dbi:SQLite:database=' . $ddbix
 };
@@ -59,7 +61,7 @@ TAB
 $config->{load_classes} = ['My::User', 'Groups'];
 
 isa_ok(plugin('DSC', $config), 'Mojolicious::Plugin::DSC');
-
+is(app->ddbix->query("SELECT UPPER('тест')")->array->[0], 'ТЕСТ','onconnect_do works');
 ok(app->ddbix->dbh->do($users_table),     'app->ddbix->dbh->do works');
 ok(app->ddbix->dbh->do($my_groups_table), 'app->ddbix->dbh->do works2');
 
@@ -87,8 +89,7 @@ my $your_config = {
 };
 
 my $your_dbix = plugin('DSC', $your_config);
-
-can_ok(app, 'your_dbix');
+ok((eval {app->your_dbix}||$@)=~/DBIx/, 'another schema loaded');
 isnt(app->your_dbix, app->ddbix, 'two schemas loaded');
 
 get '/' => sub {
