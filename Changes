@@ -1,8 +1,12 @@
 Revision history for Mojolicious::Plugin::DSC
 
+1.001 2015-02-22
+  - Upgraded from Mojolicious 3.85 to 5.81!
+  - Improved test coverage.
+
 1.000 2014-11-30
       - Added support for callbacks for "onconnect_do".
-        This is suitable to execute arbitrary Perl code after 
+        This is suitable to execute arbitrary Perl code after
         connection is established.
 
 0.999  2013-12-04 00:52:23 CET

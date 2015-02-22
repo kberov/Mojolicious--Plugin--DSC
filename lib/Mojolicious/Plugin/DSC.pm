@@ -4,7 +4,7 @@ use DBIx::Simple::Class;
 use Mojo::Util qw(camelize);
 use Carp;
 
-our $VERSION = '1.000';
+our $VERSION = '1.001';
 
 #some known good defaults
 my $COMMON_ATTRIBUTES = {
@@ -19,10 +19,10 @@ sub register {
 
   # This stuff is executed, when the plugin is loaded
   # Config
-  $config ||= {};
-  $config->{load_classes} ||= [];
-  $config->{DEBUG} //= ($app->mode =~ /^dev/ ? 1 : 0);
-  $config->{dbh_attributes} ||= {};
+  $config //= {};
+  $config->{load_classes} //= [];
+  $config->{DEBUG} //= $app->mode =~ m|^dev|;
+  $config->{dbh_attributes} //= {};
   croak('"load_classes" configuration directive '
       . 'must be an ARRAY reference containing a list of classes to load.')
     unless (ref($config->{load_classes}) eq 'ARRAY');
@@ -111,32 +111,32 @@ You may need to create it first using the dsc_dump_schema.pl script.'
 Try: dsc_dump_schema.pl --help'
 ERR
 
-  if ($config->{namespace} && scalar @{$config->{load_classes}}) {
+  if (scalar @{$config->{load_classes}}) {
     my @classes   = @{$config->{load_classes}};
     my $namespace = $config->{namespace};
     $namespace .= '::' unless $namespace =~ /:{2}$/;
     foreach my $class (@classes) {
       if ($class =~ /^$namespace/) {
-        my $e = Mojo::Loader->load($class);
+        my $e = Mojo::Loader::load_class($class);
         Carp::confess(ref $e ? "Exception: $e" : "$class not found: ($load_error)")
           if $e;
         next;
       }
-      my $e = Mojo::Loader->load($namespace . $class);
+      my $e = Mojo::Loader::load_class($namespace . $class);
       if (ref $e) {
         Carp::confess("Exception: $e");
       }
       elsif ($e) {
-        my $e2 = Mojo::Loader->load($class);
+        my $e2 = Mojo::Loader::load_class($class);
         Carp::confess(ref $e2 ? "Exception: $e2" : "$class not found: ($load_error)")
           if $e2;
       }
     }
   }
-  elsif ($config->{namespace} && !scalar @{$config->{load_classes}}) {
-    my $classes = Mojo::Loader->search($config->{namespace});
+  elsif (!scalar @{$config->{load_classes}}) {
+    my $classes = Mojo::Loader::find_modules($config->{namespace});
     foreach my $class (@$classes) {
-      my $e = Mojo::Loader->load($class);
+      my $e = Mojo::Loader::load_class($class);
       croak($e) if $e;
     }
   }
