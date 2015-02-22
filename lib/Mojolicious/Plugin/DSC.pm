@@ -4,7 +4,7 @@ use DBIx::Simple::Class;
 use Mojo::Util qw(camelize);
 use Carp;
 
-our $VERSION = '1.001';
+our $VERSION = '1.002';
 
 #some known good defaults
 my $COMMON_ATTRIBUTES = {
@@ -19,9 +19,9 @@ sub register {
 
   # This stuff is executed, when the plugin is loaded
   # Config
-  $config //= {};
-  $config->{load_classes} //= [];
-  $config->{DEBUG} //= $app->mode =~ m|^dev|;
+  $config                   //= {};
+  $config->{load_classes}   //= [];
+  $config->{DEBUG}          //= $app->mode =~ m|^dev|;
   $config->{dbh_attributes} //= {};
   croak('"load_classes" configuration directive '
       . 'must be an ARRAY reference containing a list of classes to load.')
@@ -134,8 +134,8 @@ ERR
     }
   }
   elsif (!scalar @{$config->{load_classes}}) {
-    my $classes = Mojo::Loader::find_modules($config->{namespace});
-    foreach my $class (@$classes) {
+    my @classes = Mojo::Loader::find_modules($config->{namespace});
+    foreach my $class (@classes) {
       my $e = Mojo::Loader::load_class($class);
       croak($e) if $e;
     }

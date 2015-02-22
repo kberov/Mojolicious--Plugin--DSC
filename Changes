@@ -1,5 +1,8 @@
 Revision history for Mojolicious::Plugin::DSC
 
+1.002 2015-02-22
+  - Fixed bug! Assigning to a scalar instead of array of classes to load.
+
 1.001 2015-02-22
   - Upgraded from Mojolicious 3.85 to 5.81!
   - Improved test coverage.

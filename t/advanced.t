@@ -59,7 +59,11 @@ CREATE TABLE users (
   login_password VARCHAR(100)
   )
 TAB
-
+delete $config->{load_classes};
+ok(plugin('DSC', $config));
+for (qw(User Groups)) {
+  ok($INC{"My/$_.pm"}, $INC{"My/$_.pm"} . ' is loaded');
+}
 $config->{load_classes} = ['My::User', 'Groups'];
 
 isa_ok(plugin('DSC', $config), 'Mojolicious::Plugin::DSC');
