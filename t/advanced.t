@@ -88,12 +88,17 @@ my $your_config = {
   load_classes => ['User'],
   user         => 'me',
   dbix_helper  => 'your_dbix',
-  dsn          => 'dbi:SQLite:database=' . $ddbix
+  dsn          => 'dbi:SQLite:database=' . $ddbix,
+  # plug-in should be able to work with non-array, single statement configuration.
+  onconnect_do => 'CREATE TEMP TABLE IF NOT EXISTS Variables ( key TEXT PRIMARY KEY, value TEXT )',
 };
 
 my $your_dbix = plugin('DSC', $your_config);
 ok((eval { app->your_dbix } || $@) =~ /DBIx/, 'another schema loaded');
 isnt(app->your_dbix, app->ddbix, 'two schemas loaded');
+
+# If the table was created at connect, then the table exists and we can select from it.
+is(app->your_dbix->query("SELECT count(*) FROM Variables")->array->[0], '0', 'non-ref onconnect_do works');
 
 get '/' => sub {
   my $self = shift;
@@ -119,6 +124,32 @@ $t->content_is('Hello ' . $user->login_name . ' from group ' . $group->group . '
 
 $t->post_ok('/edit/user', form => {id => 1, login_password => 'alabala123'})
   ->status_is(200)->content_is('New password for user петър is alabala123');
+
+# Let's see if exceptions are thrown, as they should. It's never a good idea to ignore errors.
+
+my $your_bad_config_1 = {
+  namespace    => 'Your',
+  load_classes => [ ], # This includes "Your::Bad" that has broken constructor.
+  user         => 'me',
+  dbix_helper  => 'your_bad_dbix_1',
+  dsn          => 'dbi:SQLite:database=' . $ddbix,
+};
+my $your_bad_dbix_1 = eval {
+    return plugin('DSC', $your_bad_config_1);
+};
+like( $@, qr/Does not compute/, 'Exception about "Bad" class thrown properly');
+
+my $your_bad_config_3 = {
+  namespace    => 'Very',
+  load_classes => ["Bad"],
+  user         => 'me',
+  dbix_helper  => 'your_bad_dbix_3',
+  dsn          => 'dbi:SQLite:database=' . $ddbix,
+};
+my $your_bad_dbix_3 = eval {
+    return plugin('DSC', $your_bad_config_3);
+};
+like( $@, qr/Does not load/, 'Exception about "Bad" class thrown properly (by namespace)');
 
 done_testing;
 
