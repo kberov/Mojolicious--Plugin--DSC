@@ -4,7 +4,7 @@ use DBIx::Simple::Class;
 use Mojo::Util qw(camelize);
 use Carp;
 
-our $VERSION = '1.002';
+our $VERSION = '1.003';
 
 #some known good defaults
 my $COMMON_ATTRIBUTES = {
@@ -21,7 +21,7 @@ sub register {
   # Config
   $config                   //= {};
   $config->{load_classes}   //= [];
-  $config->{DEBUG}          //= $app->mode =~ m|^dev|;
+  $config->{DEBUG}          //= ($app->mode =~ m|^dev|);
   $config->{dbh_attributes} //= {};
   croak('"load_classes" configuration directive '
       . 'must be an ARRAY reference containing a list of classes to load.')
@@ -34,7 +34,7 @@ sub register {
   if (!$config->{dsn}) {
     $config->{driver}
       || croak('Please choose and set a database driver like "mysql","SQLite","Pg"!..');
-    $config->{database} || croak('Please set "database"!');
+    croak('Please set "database"!') unless $config->{database};
     $config->{host} ||= 'localhost';
     $config->{dsn} = 'dbi:'
       . $config->{driver}
@@ -43,10 +43,9 @@ sub register {
       . ';host='
       . $config->{host}
       . ($config->{port} ? ';port=' . $config->{port} : '');
-    $config->{database} =~ m/(\w+)/x and do {
-      $config->{namespace} ||= camelize($1);
-    };
-    $config->{namespace} ||= camelize($config->{database});
+    if ($config->{database} =~ m/(\w+)/x) {
+      $config->{namespace} = camelize($1) unless $config->{namespace};
+    }
   }
   else {
     my ($scheme, $driver, $attr_string, $attr_hash, $driver_dsn) =
@@ -62,7 +61,7 @@ sub register {
 
   $config->{onconnect_do} ||= [];
 
-  #Postpone connecting to the database for the first helper call.
+  #Postpone connecting to the database till the first helper call.
   my $helper_builder = sub {
 
     #ready... Go!
@@ -97,8 +96,8 @@ sub register {
 
   #Add $dbix as attribute and helper where needed
   my $dbix_helper = $config->{dbix_helper} ||= 'dbix';
-  $app->helper($dbix_helper, $helper_builder) unless $app->can($dbix_helper);
-  $self->config($config);
+  $app->helper($dbix_helper, $helper_builder);
+  $self->config({%$config});    #copy
   $app->$dbix_helper() if (!$config->{postpone_connect});
   return $self;
 }    #end register
@@ -133,7 +132,7 @@ ERR
       }
     }
   }
-  elsif (!scalar @{$config->{load_classes}}) {
+  else {    #no load_classes
     my @classes = Mojo::Loader::find_modules($config->{namespace});
     foreach my $class (@classes) {
       my $e = Mojo::Loader::load_class($class);

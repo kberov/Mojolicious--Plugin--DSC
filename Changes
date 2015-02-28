@@ -1,5 +1,11 @@
 Revision history for Mojolicious::Plugin::DSC
 
+1.003 2015-02-28
+  - Improved statement test coverage by Bartłomiej Syguła (NATANAEL)
+    as part of the CPAN pull request challenge. Thanks!
+  - Improved condition and branch test coverage. Total: 91.6%!
+  - Works with Mojolicious 6.0! 
+
 1.002 2015-02-22
   - Fixed bug! Assigning to a scalar instead of array of classes to load.
 

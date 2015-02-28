@@ -14,7 +14,7 @@ my $ydbix = tmpnam();
 #Suppress some warnings from DBIx::Simple::Class during tests.
 local $SIG{__WARN__} = sub {
   if (
-    $_[0] =~ /(ddbix\sredefined
+    $_[0] =~ /(passphrase|redefined
          |SQL\sfrom)/x
     )
   {
@@ -25,7 +25,12 @@ local $SIG{__WARN__} = sub {
     warn @_;
   }
 };
+
+app->mode('production');    #mute debug messages;
+
 plugin('Charset', {charset => 'UTF-8'});
+
+
 my $config = {
   database       => ':memory:',
   DEBUG          => 0,
@@ -93,8 +98,10 @@ my $your_config = {
   user         => 'me',
   dbix_helper  => 'your_dbix',
   dsn          => 'dbi:SQLite:database=' . $ddbix,
+
   # plug-in should be able to work with non-array, single statement configuration.
-  onconnect_do => 'CREATE TEMP TABLE IF NOT EXISTS Variables ( key TEXT PRIMARY KEY, value TEXT )',
+  onconnect_do =>
+    'CREATE TEMP TABLE IF NOT EXISTS Variables ( key TEXT PRIMARY KEY, value TEXT )',
 };
 
 my $your_dbix = plugin('DSC', $your_config);
@@ -102,7 +109,8 @@ ok((eval { app->your_dbix } || $@) =~ /DBIx/, 'another schema loaded');
 isnt(app->your_dbix, app->ddbix, 'two schemas loaded');
 
 # If the table was created at connect, then the table exists and we can select from it.
-is(app->your_dbix->query("SELECT count(*) FROM Variables")->array->[0], '0', 'non-ref onconnect_do works');
+is(app->your_dbix->query("SELECT count(*) FROM Variables")->array->[0],
+  '0', 'non-ref onconnect_do works');
 
 get '/' => sub {
   my $self = shift;
@@ -133,15 +141,13 @@ $t->post_ok('/edit/user', form => {id => 1, login_password => 'alabala123'})
 
 my $your_bad_config_1 = {
   namespace    => 'Your',
-  load_classes => [ ], # This includes "Your::Bad" that has broken constructor.
+  load_classes => [],       # This includes "Your::Bad" that has broken constructor.
   user         => 'me',
-  dbix_helper  => 'your_bad_dbix_1',
-  dsn          => 'dbi:SQLite:database=' . $ddbix,
+  dbix_helper => 'your_bad_dbix_1',
+  dsn         => 'dbi:SQLite:database=' . $ddbix,
 };
-my $your_bad_dbix_1 = eval {
-    return plugin('DSC', $your_bad_config_1);
-};
-like( $@, qr/Does not compute/, 'Exception about "Bad" class thrown properly');
+my $your_bad_dbix_1 = eval { return plugin('DSC', $your_bad_config_1); };
+like($@, qr/Does not compute/, 'Exception about "Bad" class thrown properly');
 
 my $your_bad_config_3 = {
   namespace    => 'Very',
@@ -150,10 +156,12 @@ my $your_bad_config_3 = {
   dbix_helper  => 'your_bad_dbix_3',
   dsn          => 'dbi:SQLite:database=' . $ddbix,
 };
-my $your_bad_dbix_3 = eval {
-    return plugin('DSC', $your_bad_config_3);
-};
-like( $@, qr/Does not load/, 'Exception about "Bad" class thrown properly (by namespace)');
+my $your_bad_dbix_3 = eval { return plugin('DSC', $your_bad_config_3); };
+like(
+  $@,
+  qr/Does not load/,
+  'Exception about "Bad" class thrown properly (by namespace)'
+);
 
 done_testing;
 

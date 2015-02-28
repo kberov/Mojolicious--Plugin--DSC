@@ -6,7 +6,7 @@ use lib dirname(__FILE__) . '/lib';
 #Suppress some warnings from DBIx::Simple::Class during tests.
 local $SIG{__WARN__} = sub {
   if (
-    $_[0] =~ /(ddbix\sredefined
+    $_[0] =~ /(redefined
          |SQL\sfrom|locate\sMemory\.pm\sin
          |Can't\slocate\sFoo.pm
          |"dbix"already\sexists,\sreplacing)/x
@@ -19,8 +19,11 @@ local $SIG{__WARN__} = sub {
     warn @_;
   }
 };
+
+
 my $help_count = 1;
 my $config     = {};
+my $app        = app;
 like(
   (eval { plugin 'DSC' }, $@),
   qr/Please choose and set a database driver/,
@@ -28,8 +31,12 @@ like(
 );
 $config->{driver} = 'SQLite';
 like((eval { plugin 'DSC', $config }, $@), qr'Please set "database"!', 'no database');
-$config->{database} = ':memory:';
-my $generated_config = plugin('DSC', $config)->config;
+delete $app->renderer->helpers->{dbix};
+$config->{database}     = ':memory:';
+$config->{onconnect_do} = [''];
+my $plugin = plugin('DSC', $config);
+delete $app->renderer->helpers->{dbix};
+my $generated_config = $plugin->config;
 is_deeply(
   $generated_config,
   { database       => ':memory:',
@@ -41,17 +48,52 @@ is_deeply(
     onconnect_do   => [],
     dbix_helper    => 'dbix',
     host           => 'localhost',
-    dsn            => 'dbi:SQLite:database=:memory:;host=localhost'
+    dsn            => 'dbi:SQLite:database=:memory:;host=localhost',
+    onconnect_do   => [''],
   },
   'default generated from minimal config'
 );
+$app->mode('production');    #mute debug messages;
+$config = {
+  driver           => 'SQLite',
+  database         => ':memory:',
+  postpone_connect => 1,
+  password         => 'bla'
+};
+$config->{driver} = 'SQLite';
+
+$generated_config = plugin('DSC', $config)->config;
+delete $app->renderer->helpers->{dbix};
+
+is_deeply(
+  $generated_config,
+  { database         => ':memory:',
+    DEBUG            => '',
+    load_classes     => [],
+    namespace        => 'Memory',
+    dbh_attributes   => {},
+    driver           => $config->{driver},
+    onconnect_do     => [],
+    dbix_helper      => 'dbix',
+    host             => 'localhost',
+    dsn              => 'dbi:SQLite:database=:memory:;host=localhost',
+    postpone_connect => $config->{postpone_connect},
+    password         => $config->{password},
+  },
+  'default generated from minimal config in production'
+);
 delete $config->{dsn};
-is(plugin('DSC', {%$config, port => 1234})->config->{port},    1234,    'right port');
+is(plugin('DSC', {%$config, port => 1234})->config->{port}, 1234, 'right port');
+delete $app->renderer->helpers->{dbix};
+
 is(plugin('DSC', {%$config, host => 'local'})->config->{host}, 'local', 'right host');
+delete $app->renderer->helpers->{dbix};
 is(plugin('DSC', {%$config, password => '***'})->config->{password},
   '***', 'right password');
+delete $app->renderer->helpers->{dbix};
 is(plugin('DSC', {%$config, namespace => 'Foo'})->config->{namespace},
   'Foo', 'no namespace Foo just warns');
+delete $app->renderer->helpers->{dbix};
 
 like(
   (eval { plugin('DSC', {dsn => 'bla'}) }, $@),
