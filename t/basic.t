@@ -32,6 +32,13 @@ like(
 $config->{driver} = 'SQLite';
 like((eval { plugin 'DSC', $config }, $@), qr'Please set "database"!', 'no database');
 delete $app->renderer->helpers->{dbix};
+$config->{database} = '%$#@';
+like(
+  (eval { plugin 'DSC', $config }, $@),
+  qr'Please set "database"!',
+  'Unparsable database name'
+);
+delete $app->renderer->helpers->{dbix};
 $config->{database}     = ':memory:';
 $config->{onconnect_do} = [''];
 my $plugin = plugin('DSC', $config);

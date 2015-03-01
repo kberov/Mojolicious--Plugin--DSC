@@ -4,7 +4,7 @@ use DBIx::Simple::Class;
 use Mojo::Util qw(camelize);
 use Carp;
 
-our $VERSION = '1.003';
+our $VERSION = '1.004';
 
 #some known good defaults
 my $COMMON_ATTRIBUTES = {
@@ -23,6 +23,7 @@ sub register {
   $config->{load_classes}   //= [];
   $config->{DEBUG}          //= ($app->mode =~ m|^dev|);
   $config->{dbh_attributes} //= {};
+  $config->{database}       //= '';
   croak('"load_classes" configuration directive '
       . 'must be an ARRAY reference containing a list of classes to load.')
     unless (ref($config->{load_classes}) eq 'ARRAY');
@@ -34,7 +35,7 @@ sub register {
   if (!$config->{dsn}) {
     $config->{driver}
       || croak('Please choose and set a database driver like "mysql","SQLite","Pg"!..');
-    croak('Please set "database"!') unless $config->{database};
+    croak('Please set "database"!') unless $config->{database} =~ m/\w+/x;
     $config->{host} ||= 'localhost';
     $config->{dsn} = 'dbi:'
       . $config->{driver}
@@ -43,6 +44,7 @@ sub register {
       . ';host='
       . $config->{host}
       . ($config->{port} ? ';port=' . $config->{port} : '');
+
     if ($config->{database} =~ m/(\w+)/x) {
       $config->{namespace} = camelize($1) unless $config->{namespace};
     }
@@ -52,6 +54,7 @@ sub register {
       DBI->parse_dsn($config->{dsn})
       || croak("Can't parse DBI DSN! dsn=>'$config->{dsn}'");
     $config->{driver} = $driver;
+
     $scheme =~ m/(database|dbname)=\W?(\w+)/x and do {
       $config->{namespace} ||= camelize($2);
     };
