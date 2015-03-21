@@ -1,5 +1,8 @@
 Revision history for Mojolicious::Plugin::DSC
 
+1.004 2015-03-21
+  Requiring DBIx::Simple::Class 1.009.
+
 1.004 2015-03-01
   - Pushed up required versions of dependencies:
     Mojolicious 6.0, DBIx::Simple::Class 1.008.
