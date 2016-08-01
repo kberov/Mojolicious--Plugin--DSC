@@ -28,9 +28,6 @@ local $SIG{__WARN__} = sub {
 
 app->mode('production');    #mute debug messages;
 
-plugin('Charset', {charset => 'UTF-8'});
-
-
 my $config = {
   database       => ':memory:',
   DEBUG          => 0,

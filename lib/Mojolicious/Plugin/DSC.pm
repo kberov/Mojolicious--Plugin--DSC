@@ -4,7 +4,7 @@ use DBIx::Simple::Class;
 use Mojo::Util qw(camelize);
 use Carp;
 
-our $VERSION = '1.005';
+our $VERSION = '1.006';
 
 #some known good defaults
 my $COMMON_ATTRIBUTES = {
